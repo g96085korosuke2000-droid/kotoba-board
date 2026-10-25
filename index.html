@@ -1,0 +1,244 @@
+<title>ことばボード</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
+<style>
+/* Layout: full-screen tablet board — message strip on top, scannable rows of big keys filling the rest */
+:root{
+  --bg:#eef2f1; --panel:#ffffff; --ink:#14302c; --sub:#4f6763;
+  --key:#ffffff; --keyline:#c9d6d3; --accent:#1f6f63;
+  --scan:#ffb000; --scanink:#1b1300; --rowscan:#fff1c7;
+  --danger:#b3412f;
+  --font:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Hiragino Sans","Yu Gothic",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0d1716; --panel:#15211f; --ink:#e9f2ef; --sub:#9db3ae;
+  --key:#1a2725; --keyline:#2f403d; --accent:#5cc2b0;
+  --scan:#ffc233; --scanink:#1b1300; --rowscan:#3a3215; --danger:#ff8a75; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0d1716; --panel:#15211f; --ink:#e9f2ef; --sub:#9db3ae;
+  --key:#1a2725; --keyline:#2f403d; --accent:#5cc2b0;
+  --scan:#ffc233; --scanink:#1b1300; --rowscan:#3a3215; --danger:#ff8a75; color-scheme:dark}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation;overflow:hidden}
+.app{height:100%;display:flex;flex-direction:column;gap:10px;box-sizing:border-box;
+  padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.msgbar{display:flex;gap:10px;align-items:stretch}
+.msg{flex:1;min-width:0;background:var(--panel);border:2px solid var(--keyline);border-radius:14px;
+  padding:10px 16px;font-size:clamp(28px,5.5vw,56px);font-weight:900;line-height:1.25;
+  min-height:1.4em;overflow-wrap:anywhere;display:flex;align-items:center}
+.msg.empty{color:var(--sub);font-weight:500;font-size:clamp(16px,2.6vw,24px)}
+.gear{flex:none;width:clamp(64px,9vw,92px);border-radius:14px;border:2px solid var(--keyline);
+  background:var(--panel);color:var(--sub);font:700 14px var(--font);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:2px;cursor:pointer}
+.gear b{font-size:26px;line-height:1}
+.board{flex:1;min-height:0;display:flex;flex-direction:column;gap:8px}
+.row{flex:1;min-height:0;display:flex;gap:8px;padding:4px;border-radius:14px;border:3px solid transparent}
+.row.nav{flex:.7}
+.key{flex:1;min-width:0;border-radius:12px;border:2px solid var(--keyline);background:var(--key);color:var(--ink);
+  font:900 clamp(18px,3.6vw,40px)/1.15 var(--font);padding:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;text-align:center}
+.kana .key{font-size:clamp(22px,4.6vw,50px)}
+.key.tab{font-size:clamp(16px,2.6vw,28px);color:var(--sub)}
+.key.tab.on{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+.key.yes{border-color:var(--accent);color:var(--accent)}
+.key.no{border-color:var(--danger);color:var(--danger)}
+.key.ctl{font-size:clamp(15px,2.4vw,26px);color:var(--sub)}
+.key.speak{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+.key:focus-visible{outline:4px solid var(--accent);outline-offset:2px}
+.key.flash{transform:scale(.96)}
+/* scanning */
+.row.scan{background:var(--rowscan);border-color:var(--scan)}
+.key.scan{background:var(--scan);border-color:var(--scan);color:var(--scanink);transform:scale(1.03)}
+.status{font-size:13px;color:var(--sub);text-align:center}
+/* settings */
+.sheet{position:fixed;inset:0;background:color-mix(in srgb,var(--bg) 70%,transparent);display:flex;align-items:center;justify-content:center;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));z-index:20}
+.card{background:var(--panel);border:2px solid var(--keyline);border-radius:18px;padding:22px;max-width:520px;width:100%;
+  display:flex;flex-direction:column;gap:16px;font-size:17px;-webkit-user-select:text;user-select:text}
+.card h2{margin:0;font-size:22px}
+.card p{margin:0;color:var(--sub);line-height:1.6;font-size:15px}
+.line{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.btn{font:700 17px var(--font);padding:12px 18px;border-radius:12px;border:2px solid var(--keyline);background:var(--key);color:var(--ink);cursor:pointer}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+input[type=range]{width:220px;max-width:100%;accent-color:var(--accent)}
+@media (prefers-reduced-motion: reduce){.key{transition:none}}
+</style>
+
+<div class="app" id="app">
+  <div class="msgbar">
+    <div class="msg empty" id="msg">選ぶと、ここに大きく出て、声で読み上げます</div>
+    <button class="gear" id="gear" type="button"><b>⚙</b><span id="gearLbl">設定</span></button>
+  </div>
+  <div class="board" id="board"></div>
+  <div class="status" id="status">タップで選ぶモード</div>
+</div>
+
+<div class="sheet" id="sheet" hidden>
+  <div class="card">
+    <h2>設定（ご家族・看護師さん用）</h2>
+    <div class="line"><span><b>スキャン（ホーキング方式）</b></span>
+      <button class="btn pri" id="scanBtn" type="button">スキャン開始</button></div>
+    <p>スキャン中は、光る枠が1行ずつ動きます。画面のどこでも1回タップすると行が決まり、次にその行の中を1つずつ動きます。もう1回タップで決定です。外付けのスイッチやキーボードのスペースキーでも選べます。</p>
+    <div class="line"><span>動く速さ：<b id="spdVal">2.0</b>秒</span>
+      <input type="range" id="spd" min="1" max="5" step="0.5" value="2"></div>
+    <div class="line"><span>読み上げ</span><button class="btn" id="voiceBtn" type="button">オン</button></div>
+    <div class="line"><span>音声テスト</span><button class="btn" id="testBtn" type="button">「はい」と話す</button></div>
+    <p>スキャン中にこの画面を開くには、右上の⚙を2秒長押ししてください。</p>
+    <button class="btn" id="closeBtn" type="button">とじる</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var S={screen:'kotoba',scan:false,speed:2,voice:true,msg:''};
+  try{var sv=JSON.parse(localStorage.getItem('kb-set')||'{}');if(sv.speed)S.speed=sv.speed;if(sv.voice===false)S.voice=false;}catch(e){}
+  function save(){try{localStorage.setItem('kb-set',JSON.stringify({speed:S.speed,voice:S.voice}))}catch(e){}}
+
+  var $=function(id){return document.getElementById(id)};
+  var board=$('board'),msgEl=$('msg'),statusEl=$('status'),sheet=$('sheet');
+
+  function speak(t){
+    if(!S.voice||!t||!window.speechSynthesis)return;
+    try{speechSynthesis.cancel();var u=new SpeechSynthesisUtterance(t);u.lang='ja-JP';u.rate=0.9;speechSynthesis.speak(u);}catch(e){}
+  }
+  function setMsg(t){S.msg=t;
+    if(t){msgEl.textContent=t;msgEl.classList.remove('empty')}
+    else{msgEl.textContent='選ぶと、ここに大きく出て、声で読み上げます';msgEl.classList.add('empty')}}
+  function say(t){setMsg(t);speak(t)}
+  function add(k){setMsg(S.msg+k)}
+
+  var DAKU={'か':'が','き':'ぎ','く':'ぐ','け':'げ','こ':'ご','さ':'ざ','し':'じ','す':'ず','せ':'ぜ','そ':'ぞ','た':'だ','ち':'ぢ','つ':'づ','て':'で','と':'ど','は':'ば','ひ':'び','ふ':'ぶ','へ':'べ','ほ':'ぼ','ば':'ぱ','び':'ぴ','ぶ':'ぷ','べ':'ぺ','ぼ':'ぽ','ぱ':'は','ぴ':'ひ','ぷ':'ふ','ぺ':'へ','ぽ':'ほ','う':'ゔ'};
+  var REV={};for(var k in DAKU){if(!REV[DAKU[k]]&&'ぱぴぷぺぽ'.indexOf(k)<0)REV[DAKU[k]]=k}
+  var SMALL={'あ':'ぁ','い':'ぃ','う':'ぅ','え':'ぇ','お':'ぉ','つ':'っ','や':'ゃ','ゆ':'ゅ','よ':'ょ','わ':'ゎ'};
+  var SMALLR={};for(var s in SMALL)SMALLR[SMALL[s]]=s;
+  function modLast(map,rev){var t=S.msg;if(!t)return;var c=t.slice(-1);var n=map[c]||(rev&&rev[c]);
+    if(n)setMsg(t.slice(0,-1)+n)}
+
+  function P(label,cls,speakText){return{label:label,cls:cls||'',act:function(){say(speakText||label)}}}
+  var NAV=[
+    {label:'ことば',cls:'tab',tab:'kotoba'},
+    {label:'からだ',cls:'tab',tab:'karada'},
+    {label:'あいう',cls:'tab',tab:'kana'}
+  ];
+  NAV.forEach(function(n){n.act=function(){S.screen=n.tab;render()}});
+
+  var SCREENS={
+    kotoba:[
+      [P('はい','yes'),P('いいえ','no'),P('わからない')],
+      [P('痛い'),P('苦しい'),P('息がしにくい')],
+      [P('痰をとって'),P('口がかわく'),P('向きを変えて')],
+      [P('暑い'),P('寒い'),P('かゆい')],
+      [P('看護師さんを呼んで'),P('こわい'),P('眠りたい')],
+      [P('家族に会いたい'),P('大丈夫'),P('ありがとう')]
+    ],
+    karada:[
+      [P('頭'),P('目'),P('のど'),P('首')],
+      [P('胸'),P('お腹'),P('背中'),P('腰')],
+      [P('右手'),P('左手'),P('右足'),P('左足')],
+      [P('おしり'),P('チューブ'),P('口・歯'),P('全身')],
+      [P('少し','', '少し'),P('かなり','', 'かなり'),P('がまんできない'),P('前より楽')]
+    ],
+    kana:[]
+  };
+  ['あいうえお','かきくけこ','さしすせそ','たちつてと','なにぬねの','はひふへほ','まみむめも','やゆよー？','らりるれろ','わをん、。']
+  .forEach(function(r){SCREENS.kana.push(r.split('').map(function(ch){return{label:ch,act:function(){add(ch)}}}))});
+  SCREENS.kana.push([
+    {label:'゛゜',cls:'ctl',act:function(){modLast(DAKU)}},
+    {label:'小さく',cls:'ctl',act:function(){modLast(SMALL,SMALLR)}},
+    {label:'1字けす',cls:'ctl',act:function(){setMsg(S.msg.slice(0,-1))}},
+    {label:'全部けす',cls:'ctl',act:function(){setMsg('')}},
+    {label:'話す',cls:'speak',act:function(){speak(S.msg)}}
+  ]);
+
+  var rows=[];
+  function render(){
+    rows=[NAV].concat(SCREENS[S.screen]);
+    board.innerHTML='';
+    board.className='board'+(S.screen==='kana'?' kana':'');
+    rows.forEach(function(r,ri){
+      var rd=document.createElement('div');rd.className='row'+(ri===0?' nav':'');
+      r.forEach(function(it,ci){
+        var b=document.createElement('button');b.type='button';
+        b.className='key '+(it.cls||'')+(it.tab&&it.tab===S.screen?' on':'');
+        b.textContent=it.label;b.dataset.r=ri;b.dataset.c=ci;
+        rd.appendChild(b);
+      });
+      board.appendChild(rd);
+    });
+    if(S.scan)resetScan();
+  }
+
+  var last=0;
+  function choose(it,btn){
+    var now=Date.now();if(now-last<500)return;last=now;
+    if(btn){btn.classList.add('flash');setTimeout(function(){btn.classList.remove('flash')},150)}
+    it.act();
+  }
+  board.addEventListener('click',function(e){
+    if(S.scan)return;
+    var b=e.target.closest('.key');if(!b)return;
+    choose(rows[+b.dataset.r][+b.dataset.c],b);
+  });
+
+  // ---- scanning ----
+  var phase='row',ri=-1,ci=-1,loops=0,timer=null;
+  function clearHi(){board.querySelectorAll('.scan').forEach(function(el){el.classList.remove('scan')})}
+  function hi(){
+    clearHi();var rd=board.children[ri];if(!rd)return;
+    if(phase==='row')rd.classList.add('scan');
+    else{rd.classList.add('scan');var k=rd.children[ci];if(k)k.classList.add('scan')}
+  }
+  function step(){
+    if(phase==='row'){ri=(ri+1)%rows.length;}
+    else{ci++;if(ci>=rows[ri].length){ci=0;loops++;if(loops>=2){phase='row';ci=-1}}}
+    hi();
+  }
+  function startTimer(first){
+    clearInterval(timer);clearTimeout(timer);
+    timer=setTimeout(function(){step();timer=setInterval(step,S.speed*1000)},(first||S.speed)*1000);
+  }
+  function resetScan(){phase='row';ri=0;ci=-1;loops=0;hi();startTimer(S.speed*1.5)}
+  function sw(){
+    var now=Date.now();if(now-last<500)return;
+    if(phase==='row'){last=now;phase='item';ci=0;loops=0;hi();startTimer(S.speed*1.3);}
+    else{var it=rows[ri][ci];var btn=board.children[ri].children[ci];
+      choose(it,btn);if(S.scan&&!it.tab){phase='row';ri=0;ci=-1;hi();startTimer(S.speed*1.5)}}
+  }
+  function setScan(on){
+    S.scan=on;clearInterval(timer);clearTimeout(timer);clearHi();
+    $('scanBtn').textContent=on?'スキャン停止':'スキャン開始';
+    $('gearLbl').textContent=on?'長押し':'設定';
+    statusEl.textContent=on?'スキャン中：画面のどこでも1回タップで選ぶ':'タップで選ぶモード';
+    if(on)resetScan();
+  }
+  document.addEventListener('pointerdown',function(e){
+    if(!S.scan||!sheet.hidden)return;
+    if(e.target.closest('#gear'))return;
+    e.preventDefault();sw();
+  });
+  document.addEventListener('keydown',function(e){
+    if(!S.scan||!sheet.hidden)return;
+    if(e.key===' '||e.key==='Enter'){e.preventDefault();sw()}
+  });
+
+  // ---- settings ----
+  var holdT=null;
+  function openSheet(){clearInterval(timer);clearTimeout(timer);sheet.hidden=false}
+  function closeSheet(){sheet.hidden=true;if(S.scan)resetScan()}
+  $('gear').addEventListener('pointerdown',function(){
+    if(!S.scan)return;holdT=setTimeout(openSheet,2000);
+  });
+  ['pointerup','pointerleave','pointercancel'].forEach(function(ev){$('gear').addEventListener(ev,function(){clearTimeout(holdT)})});
+  $('gear').addEventListener('click',function(){if(!S.scan)openSheet()});
+  $('closeBtn').addEventListener('click',closeSheet);
+  $('scanBtn').addEventListener('click',function(){setScan(!S.scan);if(S.scan){sheet.hidden=true;resetScan()}});
+  var spd=$('spd');spd.value=S.speed;$('spdVal').textContent=S.speed.toFixed(1);
+  spd.addEventListener('input',function(){S.speed=+spd.value;$('spdVal').textContent=S.speed.toFixed(1);save()});
+  function vLbl(){$('voiceBtn').textContent=S.voice?'オン':'オフ'}vLbl();
+  $('voiceBtn').addEventListener('click',function(){S.voice=!S.voice;vLbl();save()});
+  $('testBtn').addEventListener('click',function(){var v=S.voice;S.voice=true;speak('はい');S.voice=v});
+
+  try{navigator.wakeLock&&navigator.wakeLock.request('screen').catch(function(){})}catch(e){}
+  render();
+})();
+</script>
