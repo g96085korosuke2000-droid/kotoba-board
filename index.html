@@ -40,9 +40,9 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font);
   background:var(--panel);color:var(--sub);font:700 14px var(--font);display:flex;flex-direction:column;
   align-items:center;justify-content:center;gap:2px;cursor:pointer}
 .gear b{font-size:26px;line-height:1}
-.board{flex:1;min-height:0;display:flex;flex-direction:column;gap:8px}
-.row{flex:1;min-height:0;display:flex;gap:8px;padding:4px;border-radius:14px;border:3px solid transparent}
-.row.nav{flex:.7}
+.board{flex:1;min-height:0;display:flex;flex-direction:column;gap:8px;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.row{flex:1 0 auto;min-height:clamp(70px,12vh,130px);display:flex;gap:8px;padding:4px;border-radius:14px;border:3px solid transparent}
+.row.nav{flex:0 0 auto;min-height:clamp(54px,8vh,80px)}
 .key{flex:1;min-width:0;border-radius:12px;border:2px solid var(--keyline);background:var(--key);color:var(--ink);
   font:900 clamp(18px,3.6vw,40px)/1.15 var(--font);padding:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;text-align:center}
 .kana .key{font-size:clamp(22px,4.6vw,50px)}
@@ -52,6 +52,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font);
 .key.no{border-color:var(--danger);color:var(--danger)}
 .key.ctl{font-size:clamp(15px,2.4vw,26px);color:var(--sub)}
 .key.speak{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+@media (hover:hover){.key:hover{border-color:var(--accent);box-shadow:inset 0 0 0 3px var(--accent)}}
 .key:focus-visible{outline:4px solid var(--accent);outline-offset:2px}
 .key.flash{transform:scale(.96)}
 /* scanning */
@@ -128,6 +129,7 @@ input[type=range]{width:220px;max-width:100%;accent-color:var(--accent)}
   var NAV=[
     {label:'ことば',cls:'tab',tab:'kotoba'},
     {label:'からだ',cls:'tab',tab:'karada'},
+    {label:'いつもの',cls:'tab',tab:'itsumo'},
     {label:'あいう',cls:'tab',tab:'kana'}
   ];
   NAV.forEach(function(n){n.act=function(){S.screen=n.tab;render()}});
@@ -147,6 +149,13 @@ input[type=range]{width:220px;max-width:100%;accent-color:var(--accent)}
       [P('右手'),P('左手'),P('右足'),P('左足')],
       [P('おしり'),P('チューブ'),P('口・歯'),P('全身')],
       [P('少し','', '少し'),P('かなり','', 'かなり'),P('がまんできない'),P('前より楽')]
+    ],
+    itsumo:[
+      [P('婆さん'),P('じいさん'),P('ママ'),P('わかな')],
+      [P('ジュウベエ'),P('ベル'),P('イヤホン'),P('腹減った')],
+      [P('元気そうだね'),P('大変失礼いたしました')],
+      [P('それが出来たら苦労はしねぇ'),P('ここはだれ、わたしはどこ')],
+      [P('ベッドに置くならガンダムだろ')]
     ],
     kana:[]
   };
@@ -195,6 +204,7 @@ input[type=range]{width:220px;max-width:100%;accent-color:var(--accent)}
   function clearHi(){board.querySelectorAll('.scan').forEach(function(el){el.classList.remove('scan')})}
   function hi(){
     clearHi();var rd=board.children[ri];if(!rd)return;
+    try{rd.scrollIntoView({block:'nearest'})}catch(e){}
     if(phase==='row')rd.classList.add('scan');
     else{rd.classList.add('scan');var k=rd.children[ci];if(k)k.classList.add('scan')}
   }
