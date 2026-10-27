@@ -36,11 +36,22 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font);
   padding:10px 16px;font-size:clamp(28px,5.5vw,56px);font-weight:900;line-height:1.25;
   min-height:1.4em;overflow-wrap:anywhere;display:flex;align-items:center}
 .msg.empty{color:var(--sub);font-weight:500;font-size:clamp(16px,2.6vw,24px)}
+.vbtn{flex:none;width:clamp(76px,10vw,104px);border-radius:14px;border:3px solid var(--accent);background:var(--accent);color:var(--bg);
+  font:900 clamp(14px,1.8vw,18px)/1.2 var(--font);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer}
+.vbtn b{font-size:30px;line-height:1}
+.vbtn.off{background:var(--panel);border-color:var(--danger);color:var(--danger)}
+.main{flex:1;min-height:0;display:flex;gap:8px}
+.scol{flex:none;width:clamp(64px,8vw,90px);display:flex;flex-direction:column;gap:8px}
+.sbtn{flex:1;border-radius:14px;border:2px solid var(--keyline);background:var(--panel);color:var(--ink);
+  font:900 clamp(15px,1.8vw,20px)/1.2 var(--font);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.sbtn b{font-size:clamp(28px,4vw,44px);line-height:1}
+.sbtn:disabled{opacity:.3;cursor:default}
+@media (hover:hover){.sbtn:not(:disabled):hover,.vbtn:hover,.gear:hover{box-shadow:inset 0 0 0 3px var(--accent)}}
 .gear{flex:none;width:clamp(64px,9vw,92px);border-radius:14px;border:2px solid var(--keyline);
   background:var(--panel);color:var(--sub);font:700 14px var(--font);display:flex;flex-direction:column;
   align-items:center;justify-content:center;gap:2px;cursor:pointer}
 .gear b{font-size:26px;line-height:1}
-.board{flex:1;min-height:0;display:flex;flex-direction:column;gap:8px;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.board{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;gap:8px;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 .row{flex:1 0 auto;min-height:clamp(70px,12vh,130px);display:flex;gap:8px;padding:4px;border-radius:14px;border:3px solid transparent}
 .row.nav{flex:0 0 auto;min-height:clamp(54px,8vh,80px)}
 .key{flex:1;min-width:0;border-radius:12px;border:2px solid var(--keyline);background:var(--key);color:var(--ink);
@@ -78,9 +89,16 @@ input[type=range]{width:220px;max-width:100%;accent-color:var(--accent)}
 <div class="app" id="app">
   <div class="msgbar">
     <div class="msg empty" id="msg">選ぶと、ここに大きく出て、声で読み上げます</div>
+    <button class="vbtn" id="vtop" type="button"><b id="vIcon">🔊</b><span id="vTxt">声あり</span></button>
     <button class="gear" id="gear" type="button"><b>⚙</b><span id="gearLbl">設定</span></button>
   </div>
-  <div class="board" id="board"></div>
+  <div class="main">
+    <div class="board" id="board"></div>
+    <div class="scol">
+      <button class="sbtn" id="sUp" type="button"><b>▲</b>上へ</button>
+      <button class="sbtn" id="sDn" type="button"><b>▼</b>下へ</button>
+    </div>
+  </div>
   <div class="status" id="status">タップで選ぶモード</div>
 </div>
 
@@ -184,6 +202,7 @@ input[type=range]{width:220px;max-width:100%;accent-color:var(--accent)}
       });
       board.appendChild(rd);
     });
+    board.scrollTop=0;if(window._sUpd)window._sUpd();
     if(S.scan)resetScan();
   }
 
@@ -254,8 +273,23 @@ input[type=range]{width:220px;max-width:100%;accent-color:var(--accent)}
   $('scanBtn').addEventListener('click',function(){setScan(!S.scan);if(S.scan){sheet.hidden=true;resetScan()}});
   var spd=$('spd');spd.value=S.speed;$('spdVal').textContent=S.speed.toFixed(1);
   spd.addEventListener('input',function(){S.speed=+spd.value;$('spdVal').textContent=S.speed.toFixed(1);save()});
-  function vLbl(){$('voiceBtn').textContent=S.voice?'オン':'オフ'}vLbl();
-  $('voiceBtn').addEventListener('click',function(){S.voice=!S.voice;vLbl();save()});
+  function vLbl(){
+    $('voiceBtn').textContent=S.voice?'オン':'オフ';
+    var t=$('vtop');t.classList.toggle('off',!S.voice);
+    $('vIcon').textContent=S.voice?'🔊':'🔇';$('vTxt').textContent=S.voice?'声あり':'声なし';
+    t.setAttribute('aria-pressed',S.voice?'true':'false');
+  }
+  function toggleVoice(){S.voice=!S.voice;vLbl();save();if(S.voice)speak('声をだします')}
+  vLbl();
+  $('voiceBtn').addEventListener('click',toggleVoice);
+  $('vtop').addEventListener('click',function(){if(!S.scan)toggleVoice()});
+  // scroll buttons (for trackball)
+  function sUpd(){var b=board;$('sUp').disabled=b.scrollTop<=2;$('sDn').disabled=b.scrollTop+b.clientHeight>=b.scrollHeight-2}
+  function sBy(d){board.scrollBy({top:d*board.clientHeight*0.7,behavior:'smooth'})}
+  $('sUp').addEventListener('click',function(){if(!S.scan)sBy(-1)});
+  $('sDn').addEventListener('click',function(){if(!S.scan)sBy(1)});
+  board.addEventListener('scroll',sUpd);window.addEventListener('resize',sUpd);
+  window._sUpd=sUpd;
   $('testBtn').addEventListener('click',function(){var v=S.voice;S.voice=true;speak('はい');S.voice=v});
 
   try{navigator.wakeLock&&navigator.wakeLock.request('screen').catch(function(){})}catch(e){}
