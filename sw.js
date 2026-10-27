@@ -1,5 +1,5 @@
 // ことばボード：オフライン用キャッシュ（先にキャッシュを出し、裏で最新版に更新）
-var CACHE='kotoba-v6';
+var CACHE='kotoba-v7';
 var FILES=['./','./index.html'];
 self.addEventListener('install',function(e){
   e.waitUntil(caches.open(CACHE).then(function(c){return c.addAll(FILES)}).then(function(){return self.skipWaiting()}));

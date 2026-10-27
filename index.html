@@ -147,7 +147,7 @@ input[type=range]{width:220px;max-width:100%;accent-color:var(--accent)}
   function modLast(map,rev){var t=S.msg;if(!t)return;var c=t.slice(-1);var n=map[c]||(rev&&rev[c]);
     if(n)setMsg(t.slice(0,-1)+n)}
 
-  function P(label,cls,speakText){return{label:label,cls:cls||'',act:function(){say(speakText||label)}}}
+  function P(label,cls,speakText){return{label:label,cls:cls||'',act:function(){setMsg(label);speak(speakText||label)}}}
   var NAV=[
     {label:'ことば',cls:'tab',tab:'kotoba'},
     {label:'からだ',cls:'tab',tab:'karada'},
