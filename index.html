@@ -56,7 +56,11 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font);
 .row.nav{flex:0 0 auto;min-height:clamp(54px,8vh,80px)}
 .key{flex:1;min-width:0;border-radius:12px;border:2px solid var(--keyline);background:var(--key);color:var(--ink);
   font:900 clamp(18px,3.6vw,40px)/1.15 var(--font);padding:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;text-align:center}
-.kana .key{font-size:clamp(22px,4.6vw,50px)}
+.board.kana{gap:4px;overflow:hidden}
+.board.kana .row{flex:1 1 0;min-height:0;padding:1px;border-width:2px;gap:6px}
+.board.kana .row.nav{flex:.8 1 0}
+.kana .key{font-size:clamp(18px,4.2vh,44px);border-radius:10px}
+.kana .key.ctl,.kana .key.speak{font-size:clamp(14px,2.6vh,24px)}
 .key.tab{font-size:clamp(16px,2.6vw,28px);color:var(--sub)}
 .key.tab.on{background:var(--accent);border-color:var(--accent);color:var(--bg)}
 .key.yes{border-color:var(--accent);color:var(--accent)}
@@ -177,8 +181,6 @@ input[type=range]{width:220px;max-width:100%;accent-color:var(--accent)}
     ],
     kana:[]
   };
-  ['あいうえお','かきくけこ','さしすせそ','たちつてと','なにぬねの','はひふへほ','まみむめも','やゆよー？','らりるれろ','わをん、。']
-  .forEach(function(r){SCREENS.kana.push(r.split('').map(function(ch){return{label:ch,act:function(){add(ch)}}}))});
   SCREENS.kana.push([
     {label:'゛゜',cls:'ctl',act:function(){modLast(DAKU)}},
     {label:'小さく',cls:'ctl',act:function(){modLast(SMALL,SMALLR)}},
@@ -186,6 +188,8 @@ input[type=range]{width:220px;max-width:100%;accent-color:var(--accent)}
     {label:'全部けす',cls:'ctl',act:function(){setMsg('')}},
     {label:'話す',cls:'speak',act:function(){speak(S.msg)}}
   ]);
+  ['あいうえお','かきくけこ','さしすせそ','たちつてと','なにぬねの','はひふへほ','まみむめも','やゆよー？','らりるれろ','わをん、。']
+  .forEach(function(r){SCREENS.kana.push(r.split('').map(function(ch){return{label:ch,act:function(){add(ch)}}}))});
 
   var rows=[];
   function render(){
@@ -203,6 +207,7 @@ input[type=range]{width:220px;max-width:100%;accent-color:var(--accent)}
       board.appendChild(rd);
     });
     board.scrollTop=0;if(window._sUpd)window._sUpd();
+    document.querySelector('.scol').hidden=(S.screen==='kana');
     if(S.scan)resetScan();
   }
 
